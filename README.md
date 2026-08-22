@@ -50,6 +50,8 @@ Bar icon is **off by default** (`showIcon: false`). Enable from bar settings if 
 
 IPC also has `inspect` (edges on) for manifold/scar checks.
 
+Optional profile **`studio`** (3D Artist plastic/hero 3/4): `omarchy-shell local.modelview studio` — clay remains the default.
+
 ## License
 
 MIT

@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "local.modelview",
   "name": "Model View",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Eugene Ray / Senior Engineer",
   "license": "MIT",
-  "description": "Keyboard-first STL/3MF glance via f3d (Blender clay/Z-up defaults). last/pick/open/inspect.",
+  "description": "Keyboard-first STL/3MF glance via f3d. Default clay (Blender); optional studio profile (3D Artist); inspect edges.",
   "kinds": [
     "service",
     "bar-widget"

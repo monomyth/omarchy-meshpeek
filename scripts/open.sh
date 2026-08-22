@@ -10,24 +10,61 @@ UP_AXIS="${MODELVIEW_UP:-+Z}"
 MODE="${1:-last}"
 shift || true
 
-# Blender Expert defaults (print glance, Z-up, clay so form reads).
-# Inspect mode adds edges for manifold/scar checks.
-F3D_COMMON=(
-  --up="$UP_AXIS"
-  --grid
-  --axis
-  --filename
-  --anti-aliasing
-  --background-color=0.22,0.23,0.25
-  --color=0.78,0.78,0.80
-  --roughness=0.55
-  --metallic=0
-  --hdri-ambient=0.85
-  --camera-azimuth=40
-  --camera-elevation=22
-  --camera-zoom=1.0
-  --no-render-pass-volume
-)
+# Optional profile: clay (default, Blender Expert) | studio (3D Artist) | inspect (edges)
+PROFILE="${MODELVIEW_PROFILE:-clay}"
+
+# Resolve leading profile token if present: open.sh studio last | open.sh last
+case "$MODE" in
+  clay|studio)
+    PROFILE="$MODE"
+    MODE="${1:-last}"
+    shift || true
+    ;;
+esac
+
+# Blender Expert — default clay / Z-up print glance
+clay_flags() {
+  F3D_FLAGS=(
+    --up="$UP_AXIS"
+    --grid
+    --axis
+    --filename
+    --anti-aliasing
+    --background-color=0.22,0.23,0.25
+    --color=0.78,0.78,0.80
+    --roughness=0.55
+    --metallic=0
+    --hdri-ambient=0.85
+    --camera-azimuth=40
+    --camera-elevation=22
+    --camera-zoom=1.0
+    --no-render-pass-volume
+  )
+}
+
+# 3D Artist — optional studio plastic hero 3/4
+studio_flags() {
+  F3D_FLAGS=(
+    --up="$UP_AXIS"
+    --grid
+    --axis
+    --filename
+    --camera-direction=-1,-0.35,-1
+    --camera-zoom-factor=0.9
+    --camera-azimuth-angle=-28
+    --camera-elevation-angle=18
+    --color=0.38,0.39,0.40
+    --roughness=0.48
+    --metallic=0
+    --background-color=0.22,0.22,0.24
+    --light-intensity=1.15
+    --hdri-ambient
+    --anti-aliasing=fxaa
+    --tone-mapping
+    --ambient-occlusion
+    --backface-type=visible
+  )
+}
 
 need_f3d() {
   if ! command -v f3d >/dev/null 2>&1; then
@@ -58,6 +95,13 @@ find_last() {
   printf '%s' "$found"
 }
 
+select_flags() {
+  case "$PROFILE" in
+    studio) studio_flags ;;
+    *) clay_flags ;;
+  esac
+}
+
 open_path() {
   local path="$1"
   local inspect="${2:-0}"
@@ -67,10 +111,11 @@ open_path() {
     exit 1
   fi
   record_last "$path"
+  select_flags
   if [[ "$inspect" == "1" ]]; then
-    exec f3d "${F3D_COMMON[@]}" --edges --line-width=1 "$path"
+    exec f3d "${F3D_FLAGS[@]}" --edges --line-width=1 "$path"
   else
-    exec f3d "${F3D_COMMON[@]}" "$path"
+    exec f3d "${F3D_FLAGS[@]}" "$path"
   fi
 }
 
@@ -87,7 +132,6 @@ case "$MODE" in
     ;;
   inspect|edges)
     need_f3d
-    # inspect [path] — default last
     if [[ -n "${1:-}" ]]; then
       open_path "$1" 1
     else
@@ -99,7 +143,7 @@ case "$MODE" in
     open_path "${1:-}" 0
     ;;
   *)
-    echo "usage: open.sh last|pick|open <path>|inspect [path]" >&2
+    echo "usage: open.sh [clay|studio] last|pick|open <path>|inspect [path]" >&2
     exit 2
     ;;
 esac

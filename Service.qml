@@ -12,8 +12,11 @@ Item {
   }
   readonly property string openScript: pluginDir + "/scripts/open.sh"
 
-  function run(mode, path) {
-    var cmd = ["bash", openScript, mode]
+  function run(mode, path, profile) {
+    var cmd = ["env"]
+    if (profile && profile.length)
+      cmd.push("MODELVIEW_PROFILE=" + profile)
+    cmd.push("bash", openScript, mode)
     if (path && path.length)
       cmd.push(path)
     runner.command = cmd
@@ -29,23 +32,33 @@ Item {
     target: "local.modelview"
 
     function last(): string {
-      root.run("last", "")
+      root.run("last", "", "clay")
       return "ok"
     }
 
     function pick(): string {
-      root.run("pick", "")
+      root.run("pick", "", "clay")
       return "ok"
     }
 
     function open(path: string): string {
-      root.run("open", path)
+      root.run("open", path, "clay")
       return "ok"
     }
 
-    // Manifold/scar check: same clay look + edges
     function inspect(path: string): string {
-      root.run("inspect", path || "")
+      root.run("inspect", path || "", "clay")
+      return "ok"
+    }
+
+    // Optional 3D Artist studio-plastic profile (does not replace clay default)
+    function studio(): string {
+      root.run("last", "", "studio")
+      return "ok"
+    }
+
+    function studioPick(): string {
+      root.run("pick", "", "studio")
       return "ok"
     }
   }
