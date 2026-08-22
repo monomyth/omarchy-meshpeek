@@ -10,6 +10,25 @@ UP_AXIS="${MODELVIEW_UP:-+Z}"
 MODE="${1:-last}"
 shift || true
 
+# Blender Expert defaults (print glance, Z-up, clay so form reads).
+# Inspect mode adds edges for manifold/scar checks.
+F3D_COMMON=(
+  --up="$UP_AXIS"
+  --grid
+  --axis
+  --filename
+  --anti-aliasing
+  --background-color=0.22,0.23,0.25
+  --color=0.78,0.78,0.80
+  --roughness=0.55
+  --metallic=0
+  --hdri-ambient=0.85
+  --camera-azimuth=40
+  --camera-elevation=22
+  --camera-zoom=1.0
+  --no-render-pass-volume
+)
+
 need_f3d() {
   if ! command -v f3d >/dev/null 2>&1; then
     notify-send -u critical "Model View" "f3d is not installed. Try: yay -S f3d  (or pacman -S f3d)"
@@ -19,8 +38,7 @@ need_f3d() {
 }
 
 record_last() {
-  local path="$1"
-  printf '%s\n' "$path" >"$LAST_FILE"
+  printf '%s\n' "$1" >"$LAST_FILE"
 }
 
 find_last() {
@@ -29,8 +47,6 @@ find_last() {
     IFS=':' read -r -a extra <<<"$MODELVIEW_WATCH_DIRS"
     dirs+=("${extra[@]}")
   fi
-
-  # Newest STL/3MF under watch dirs (depth-limited).
   local found=""
   found=$(find "${dirs[@]}" -maxdepth 3 \( -iname '*.stl' -o -iname '*.3mf' -o -iname '*.obj' -o -iname '*.gltf' -o -iname '*.glb' \) -type f -printf '%T@ %p\n' 2>/dev/null \
     | sort -nr \
@@ -44,42 +60,46 @@ find_last() {
 
 open_path() {
   local path="$1"
+  local inspect="${2:-0}"
   if [[ -z "$path" || ! -f "$path" ]]; then
     notify-send -u low "Model View" "No model file to open"
     echo "no file: $path" >&2
     exit 1
   fi
   record_last "$path"
-  # Defaults are SE placeholders; Blender lane owns camera/fit taste.
-  # --up for print axis; grid+axis for bounds glance; filename in title.
-  exec f3d \
-    --up="$UP_AXIS" \
-    --grid \
-    --axis \
-    --filename \
-    --max-size=2048 \
-    "$path"
+  if [[ "$inspect" == "1" ]]; then
+    exec f3d "${F3D_COMMON[@]}" --edges --line-width=1 "$path"
+  else
+    exec f3d "${F3D_COMMON[@]}" "$path"
+  fi
 }
 
 case "$MODE" in
   last)
     need_f3d
-    open_path "$(find_last)"
+    open_path "$(find_last)" 0
     ;;
   pick)
     need_f3d
     path=$(omarchy-file-select --title "Model View" --extensions "stl 3mf obj gltf glb" || true)
-    if [[ -z "${path:-}" ]]; then
-      exit 0
+    [[ -z "${path:-}" ]] && exit 0
+    open_path "$path" 0
+    ;;
+  inspect|edges)
+    need_f3d
+    # inspect [path] — default last
+    if [[ -n "${1:-}" ]]; then
+      open_path "$1" 1
+    else
+      open_path "$(find_last)" 1
     fi
-    open_path "$path"
     ;;
   open)
     need_f3d
-    open_path "${1:-}"
+    open_path "${1:-}" 0
     ;;
   *)
-    echo "usage: open.sh last|pick|open <path>" >&2
+    echo "usage: open.sh last|pick|open <path>|inspect [path]" >&2
     exit 2
     ;;
 esac

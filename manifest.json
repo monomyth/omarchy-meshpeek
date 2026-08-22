@@ -2,11 +2,14 @@
   "schemaVersion": 1,
   "id": "local.modelview",
   "name": "Model View",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Eugene Ray / Senior Engineer",
   "license": "MIT",
-  "description": "Keyboard-first STL/3MF glance via f3d. Open a path, the last export, or pick a file — no Blender required.",
-  "kinds": ["service", "bar-widget"],
+  "description": "Keyboard-first STL/3MF glance via f3d (Blender clay/Z-up defaults). last/pick/open/inspect.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
   "keepLoaded": true,
   "entryPoints": {
     "service": "Service.qml",
@@ -16,7 +19,12 @@
     "displayName": "Model View",
     "description": "Optional bar icon; prefer the keybind. Opens last model or file picker.",
     "category": "Hardware",
-    "aliases": ["stl", "3mf", "f3d", "model-view"],
+    "aliases": [
+      "stl",
+      "3mf",
+      "f3d",
+      "model-view"
+    ],
     "allowMultiple": false,
     "defaultSection": "right",
     "defaults": {
@@ -42,7 +50,12 @@
         "key": "upAxis",
         "type": "enum",
         "label": "Up axis",
-        "options": ["+Z", "+Y", "-Z", "-Y"],
+        "options": [
+          "+Z",
+          "+Y",
+          "-Z",
+          "-Y"
+        ],
         "defaultValue": "+Z",
         "description": "Print exports are usually +Z up. Blender lane can override."
       }

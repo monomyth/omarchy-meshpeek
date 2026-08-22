@@ -45,8 +45,10 @@ Bar icon is **off by default** (`showIcon: false`). Enable from bar settings if 
 ## Defaults / ownership
 
 - SE: plugin shell, IPC, binds, last-export search, f3d wrapper
-- Blender Expert: camera/fit/material taste (`f3d` flags in `scripts/open.sh`)
+- Blender Expert: camera/fit/material taste in `scripts/open.sh` (clay, Z-up, az 40 / el 22)
 - CAD: print-axis / up-axis expectations (`+Z` default)
+
+IPC also has `inspect` (edges on) for manifold/scar checks.
 
 ## License
 

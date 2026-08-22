@@ -7,19 +7,14 @@ Item {
   id: root
 
   readonly property string pluginDir: {
-    // Plugin files live next to this service entry.
     var url = Qt.resolvedUrl(".")
     return url.toString().replace(/^file:\/\//, "").replace(/\/$/, "")
   }
   readonly property string openScript: pluginDir + "/scripts/open.sh"
 
   function run(mode, path) {
-    var envUp = "+Z"
-    var watch = ""
-    // Bar widget settings are not available on the service; env overrides from
-    // the wrapper bind can set MODELVIEW_UP / MODELVIEW_WATCH_DIRS.
     var cmd = ["bash", openScript, mode]
-    if (mode === "open" && path && path.length)
+    if (path && path.length)
       cmd.push(path)
     runner.command = cmd
     runner.running = true
@@ -45,6 +40,12 @@ Item {
 
     function open(path: string): string {
       root.run("open", path)
+      return "ok"
+    }
+
+    // Manifold/scar check: same clay look + edges
+    function inspect(path: string): string {
+      root.run("inspect", path || "")
       return "ok"
     }
   }
