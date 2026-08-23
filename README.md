@@ -1,16 +1,10 @@
-# Mesh Peek (`io.github.monomyth.meshpeek`)
+# Mesh Peek
 
-Keyboard-first STL/3MF glance for Omarchy Quattro.
+Quick look at STL / 3MF / OBJ / glTF models on [Omarchy](https://omarchy.org/) Quattro — one shortcut, no full CAD app.
 
-Opens models in Chromium with Three.js (clay, Z-up). Three.js is **not** in this repo — first launch caches `three@0.170` under `~/.cache/omarchy/meshpeek/` (weekly refresh). Optional: set `MODELVIEW_BACKEND=f3d` if `f3d` is installed.
+Hit **Super+Shift+Ctrl+V**. If Files has a model selected, that file opens. If nothing’s selected (or you’re in another app), you get a file picker near your newest download. The viewer is a simple clay-shaded 3D glance: drag to orbit, scroll to zoom, right-drag to pan. Print/CAD files are Z-up by default.
 
-## One shortcut
-
-`Super + Shift + Ctrl + V` (on key release)
-
-1. **Files focused + model selected** → open that file (no picker).
-2. **Files focused + nothing selected** → confirm picker.
-3. **Other app focused** → picker near newest download.
+![preview](preview.png)
 
 ## Install
 
@@ -18,14 +12,19 @@ Opens models in Chromium with Three.js (clay, Z-up). Three.js is **not** in this
 omarchy plugin add https://github.com/monomyth/omarchy-meshpeek.git --enable
 ```
 
-Copy the Hypr bind from `bindings.hypr.lua.example` into `~/.config/hypr/bindings.lua` (or merge the snippet).
+Add the keybind from `bindings.hypr.lua.example` to `~/.config/hypr/bindings.lua` (one Super+Shift+Ctrl+V binding).
 
-### Dependencies
+Needs Chromium (or Chrome). First open downloads Three.js into `~/.cache/omarchy/meshpeek/` (once; refreshes about weekly). Also uses `wl-paste`, `jq`, and `hyprctl`.
 
-- `chromium` (default viewer)
-- `wl-paste`, `jq`, `hyprctl`, `python3`, `curl`
-- Network once to fill the Three.js cache (jsDelivr)
-- Optional: `f3d` if you force `MODELVIEW_BACKEND=f3d`
+## Usage
+
+| Situation | What happens |
+| --- | --- |
+| Files focused, model selected | Opens that model |
+| Files focused, nothing selected | Picker (won’t reopen a stale clipboard file) |
+| Any other app | Picker near newest model under Downloads / Prints |
+
+Close the Chromium window when you’re done. Optional bar icon exists but the keybind is the intended UI.
 
 ## Remove
 
@@ -33,11 +32,11 @@ Copy the Hypr bind from `bindings.hypr.lua.example` into `~/.config/hypr/binding
 omarchy plugin remove io.github.monomyth.meshpeek
 ```
 
-## Configure
+## Optional
 
 ```bash
-export MODELVIEW_UP=+Z          # print/CAD default
-export MODELVIEW_BACKEND=threejs # or f3d
+export MODELVIEW_UP=+Z    # or +Y / -Z / -Y
+export MODELVIEW_BACKEND=f3d   # only if you have f3d installed
 ```
 
 ## License
