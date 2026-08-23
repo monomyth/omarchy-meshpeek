@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# omarchy:summary=Open STL/3MF in f3d — Files selection, else newest+confirm picker
+# omarchy:summary=Open STL/3MF (f3d or Chromium+Three.js) — Files selection, else picker
 set -euo pipefail
 
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/modelview"
@@ -66,10 +66,32 @@ studio_flags() {
 
 need_f3d() {
   if ! command -v f3d >/dev/null 2>&1; then
-    notify-send -u critical "Model View" "f3d is not installed. Try: yay -S f3d"
+    notify-send -u critical "Model View" "f3d is not installed. Try: yay -S f3d (or MODELVIEW_BACKEND=threejs)"
     echo "f3d missing" >&2
     exit 127
   fi
+}
+
+backend() {
+  printf '%s' "${MODELVIEW_BACKEND:-f3d}"
+}
+
+need_viewer() {
+  case "$(backend)" in
+    threejs|web|chromium)
+      if [[ ! -x "$SCRIPT_DIR/open-web.sh" ]]; then
+        notify-send -u critical "Model View" "open-web.sh missing"
+        exit 127
+      fi
+      if ! command -v chromium >/dev/null 2>&1 && ! command -v chromium-browser >/dev/null 2>&1; then
+        notify-send -u critical "Model View" "Chromium required for Three.js viewer"
+        exit 127
+      fi
+      ;;
+    *)
+      need_f3d
+      ;;
+  esac
 }
 
 record_last() {
@@ -168,6 +190,16 @@ open_path() {
     exit 1
   fi
   record_last "$path"
+  case "$(backend)" in
+    threejs|web|chromium)
+      if [[ "$inspect" == "1" ]] && command -v f3d >/dev/null 2>&1; then
+        select_flags
+        exec f3d "${F3D_FLAGS[@]}" --edges --line-width=1 "$path"
+      fi
+      notify-send -u low -t 1200 "Model View" "Web: $(basename "$path")"
+      exec "$SCRIPT_DIR/open-web.sh" "$path"
+      ;;
+  esac
   select_flags
   if [[ "$inspect" == "1" ]]; then
     exec f3d "${F3D_FLAGS[@]}" --edges --line-width=1 "$path"
@@ -178,7 +210,7 @@ open_path() {
 
 view_flow() {
   # Outside Files — confirm picker near newest model
-  need_f3d
+  need_viewer
   local path="" newest folder hint
   newest=$(find_newest)
   if [[ -n "$newest" && -f "$newest" ]]; then
@@ -201,7 +233,7 @@ view_flow() {
 
 case "$MODE" in
   from-clipboard|clipboard)
-    need_f3d
+    need_viewer
     path=$(read_clipboard_model || true)
     if [[ -z "$path" ]]; then
       # uri-list may need a beat after Hypr copy
@@ -219,18 +251,28 @@ case "$MODE" in
     view_flow
     ;;
   open)
-    need_f3d
+    need_viewer
     open_path "${1:-}" 0
     ;;
   inspect|edges)
-    need_f3d
+    need_viewer
     open_path "${1:-$(find_newest)}" 1
     ;;
   last|pick)
     view_flow
     ;;
+  web|threejs)
+    export MODELVIEW_BACKEND=threejs
+    if [[ -n "${1:-}" ]]; then
+      need_viewer
+      open_path "$1" 0
+    else
+      view_flow
+    fi
+    ;;
   *)
-    echo "usage: open.sh [clay|studio] view|open <path>|inspect [path]" >&2
+    echo "usage: open.sh [clay|studio] view|open <path>|inspect [path]|web [path]" >&2
+    echo "  MODELVIEW_BACKEND=f3d|threejs  (default f3d)" >&2
     exit 2
     ;;
 esac

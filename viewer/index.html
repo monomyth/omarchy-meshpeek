@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Model View</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #2e2f33; overflow: hidden; font-family: system-ui, sans-serif; }
+    #hud { position: absolute; left: 12px; bottom: 10px; color: #c8c8cc; font-size: 12px; opacity: 0.85; pointer-events: none; }
+    #err { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #f2a; padding: 24px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="hud">drag · scroll zoom · right-drag pan</div>
+  <div id="err"></div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+    import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
+    import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const params = new URLSearchParams(location.search);
+    const fileUrl = params.get('file');
+    const errEl = document.getElementById('err');
+    const hud = document.getElementById('hud');
+
+    function fail(msg) {
+      errEl.style.display = 'flex';
+      errEl.textContent = msg;
+    }
+
+    if (!fileUrl) {
+      fail('Missing ?file= URL');
+      throw new Error('no file');
+    }
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x2e2f33);
+    const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.01, 5000);
+    camera.position.set(2.5, 1.8, 2.5);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(devicePixelRatio);
+    renderer.setSize(innerWidth, innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const key = new THREE.DirectionalLight(0xffffff, 1.05);
+    key.position.set(3, 5, 2);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+    fill.position.set(-2, 1, -1);
+    scene.add(fill);
+
+    const grid = new THREE.GridHelper(20, 20, 0x55565a, 0x3a3b3f);
+    scene.add(grid);
+    const axes = new THREE.AxesHelper(1);
+    scene.add(axes);
+
+    const clay = new THREE.MeshStandardMaterial({
+      color: 0xc7c7cc, roughness: 0.55, metalness: 0.0
+    });
+
+    function fit(object) {
+      const box = new THREE.Box3().setFromObject(object);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      object.position.sub(center);
+      grid.position.y = -size.y / 2;
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      camera.position.set(maxDim * 1.6, maxDim * 1.1, maxDim * 1.6);
+      controls.target.set(0, 0, 0);
+      controls.update();
+      camera.near = maxDim / 200;
+      camera.far = maxDim * 50;
+      camera.updateProjectionMatrix();
+    }
+
+    function addMesh(geom) {
+      geom.computeVertexNormals();
+      const mesh = new THREE.Mesh(geom, clay);
+      scene.add(mesh);
+      fit(mesh);
+    }
+
+    const name = decodeURIComponent(fileUrl.split('/').pop().split('?')[0]).toLowerCase();
+    hud.textContent = name + ' · drag · scroll zoom · right-drag pan';
+
+    const loaders = [
+      [/\.stl$/i, () => new STLLoader().loadAsync(fileUrl).then(addMesh)],
+      [/\.3mf$/i, () => new ThreeMFLoader().loadAsync(fileUrl).then(obj => { scene.add(obj); fit(obj); })],
+      [/\.obj$/i, () => new OBJLoader().loadAsync(fileUrl).then(obj => {
+        obj.traverse(c => { if (c.isMesh) c.material = clay; });
+        scene.add(obj); fit(obj);
+      })],
+      [/\.(gltf|glb)$/i, () => new GLTFLoader().loadAsync(fileUrl).then(g => { scene.add(g.scene); fit(g.scene); })],
+    ];
+
+    const hit = loaders.find(([re]) => re.test(name));
+    if (!hit) {
+      fail('Unsupported type: ' + name);
+    } else {
+      hit[1]().catch(e => fail(String(e)));
+    }
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    (function tick() {
+      requestAnimationFrame(tick);
+      controls.update();
+      renderer.render(scene, camera);
+    })();
+  </script>
+</body>
+</html>

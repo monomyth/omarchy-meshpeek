@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "local.modelview",
   "name": "Model View",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "author": "Eugene Ray / Senior Engineer",
   "license": "MIT",
-  "description": "One shortcut: Files selection opens f3d; else newest model folder + confirm picker.",
+  "description": "One shortcut: Files selection opens viewer (f3d or Chromium+Three.js); else confirm picker.",
   "kinds": [
     "service",
     "bar-widget"
@@ -23,7 +23,9 @@
       "stl",
       "3mf",
       "f3d",
-      "model-view"
+      "model-view",
+      "threejs",
+      "web"
     ],
     "allowMultiple": false,
     "defaultSection": "right",
