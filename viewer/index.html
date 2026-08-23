@@ -31,6 +31,8 @@
 
     const params = new URLSearchParams(location.search);
     const fileUrl = params.get('file');
+    // Match f3d MODELVIEW_UP default: print/CAD Z-up (Three.js is Y-up natively)
+    const upAxis = (params.get('up') || '+Z').toUpperCase();
     const errEl = document.getElementById('err');
     const hud = document.getElementById('hud');
 
@@ -44,10 +46,21 @@
       throw new Error('no file');
     }
 
+    function upVector(axis) {
+      switch (axis) {
+        case '+Y': return new THREE.Vector3(0, 1, 0);
+        case '-Y': return new THREE.Vector3(0, -1, 0);
+        case '-Z': return new THREE.Vector3(0, 0, -1);
+        case '+Z':
+        default: return new THREE.Vector3(0, 0, 1);
+      }
+    }
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x2e2f33);
     const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.01, 5000);
-    camera.position.set(2.5, 1.8, 2.5);
+    camera.up.copy(upVector(upAxis));
+
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(devicePixelRatio);
     renderer.setSize(innerWidth, innerHeight);
@@ -58,13 +71,15 @@
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.55));
     const key = new THREE.DirectionalLight(0xffffff, 1.05);
-    key.position.set(3, 5, 2);
-    scene.add(key);
     const fill = new THREE.DirectionalLight(0xffffff, 0.35);
-    fill.position.set(-2, 1, -1);
+    scene.add(key);
     scene.add(fill);
 
+    // GridHelper is XZ-plane (Y-up). For Z-up, rotate onto XY so the "floor" is horizontal.
     const grid = new THREE.GridHelper(20, 20, 0x55565a, 0x3a3b3f);
+    if (upAxis === '+Z' || upAxis === '-Z') {
+      grid.rotation.x = Math.PI / 2;
+    }
     scene.add(grid);
     const axes = new THREE.AxesHelper(1);
     scene.add(axes);
@@ -74,13 +89,43 @@
     });
 
     function fit(object) {
+      object.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(object);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
       object.position.sub(center);
-      grid.position.y = -size.y / 2;
-      const maxDim = Math.max(size.x, size.y, size.z) || 1;
-      camera.position.set(maxDim * 1.6, maxDim * 1.1, maxDim * 1.6);
+      object.updateMatrixWorld(true);
+      const box2 = new THREE.Box3().setFromObject(object);
+      const size2 = box2.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size2.x, size2.y, size2.z) || 1;
+
+      // Sit the floor under the model along the up axis
+      if (upAxis === '+Z' || upAxis === '-Z') {
+        grid.position.set(0, 0, box2.min.z);
+        // Clay-ish: azimuth ~40°, elevation ~28° in Z-up
+        const d = maxDim * 2.2;
+        const az = (40 * Math.PI) / 180;
+        const el = (28 * Math.PI) / 180;
+        camera.position.set(
+          d * Math.sin(az) * Math.cos(el),
+          d * Math.cos(az) * Math.cos(el),
+          d * Math.sin(el)
+        );
+        key.position.set(maxDim * 2, maxDim * 1.2, maxDim * 3);
+        fill.position.set(-maxDim * 1.5, -maxDim * 0.8, maxDim * 0.6);
+      } else {
+        grid.position.set(0, box2.min.y, 0);
+        camera.position.set(maxDim * 1.6, maxDim * 1.1, maxDim * 1.6);
+        key.position.set(3, 5, 2);
+        fill.position.set(-2, 1, -1);
+      }
+
+      // Scale grid to model footprint
+      const footprint = Math.max(size2.x, size2.y, size2.z) * 2.5;
+      const gScale = Math.max(footprint / 20, 0.05);
+      grid.scale.setScalar(gScale);
+      axes.scale.setScalar(maxDim * 0.25);
+
       controls.target.set(0, 0, 0);
       controls.update();
       camera.near = maxDim / 200;
@@ -96,7 +141,7 @@
     }
 
     const name = decodeURIComponent(fileUrl.split('/').pop().split('?')[0]).toLowerCase();
-    hud.textContent = name + ' · drag · scroll zoom · right-drag pan';
+    hud.textContent = name + ' · ' + upAxis + ' up · drag · scroll zoom · right-drag pan';
 
     const loaders = [
       [/\.stl$/i, () => new STLLoader().loadAsync(fileUrl).then(addMesh)],

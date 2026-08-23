@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "local.modelview",
   "name": "Model View",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": "Eugene Ray / Senior Engineer",
   "license": "MIT",
   "description": "One shortcut: Files selection opens Chromium+Three.js (or f3d); else confirm picker.",

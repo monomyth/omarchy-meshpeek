@@ -51,7 +51,8 @@ with socketserver.TCPServer(("127.0.0.1", port), H) as httpd:
 PY
 SERVER_PID=$!
 
-URL="http://127.0.0.1:${PORT}/index.html?file=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "/model.$ext")"
+UP_AXIS="${MODELVIEW_UP:-+Z}"
+URL="http://127.0.0.1:${PORT}/index.html?file=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "/model.$ext")&up=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$UP_AXIS")"
 
 CHROME=""
 for c in chromium chromium-browser google-chrome-stable google-chrome brave; do
