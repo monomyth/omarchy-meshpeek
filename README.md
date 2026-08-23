@@ -12,37 +12,15 @@ One shortcut opens a clay-shaded Three.js viewer in Chromium. Not a slicer, not 
 omarchy plugin add https://github.com/monomyth/omarchy-meshpeek.git --enable
 ```
 
-Add this to `~/.config/hypr/bindings.lua` (also in `bindings.hypr.lua.example`):
+Then add the Super+Shift+Ctrl+V keybind — either:
 
-```lua
--- Mesh Peek — Files focused → copy selection then open; otherwise newest-folder picker.
-local function meshpeek_open()
-  return function()
-    local win = hl.get_active_window()
-    local class = win and (win.class or win.initialClass or "") or ""
-    local in_files = type(class) == "string" and class:find("Nautilus") ~= nil
-    local home = os.getenv("HOME") or ""
-    local script = home .. "/.config/omarchy/plugins/io.github.monomyth.meshpeek/scripts/open.sh"
-
-    if in_files then
-      hl.dispatch(hl.dsp.exec_cmd("wl-copy --clear"))
-      hl.timer(function()
-        hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL", key = "C", state = "down" }))
-        hl.timer(function()
-          hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL", key = "C", state = "up" }))
-          hl.timer(function()
-            hl.dispatch(hl.dsp.exec_cmd("bash " .. script .. " from-clipboard"))
-          end, { timeout = 100, type = "oneshot" })
-        end, { timeout = 50, type = "oneshot" })
-      end, { timeout = 40, type = "oneshot" })
-    else
-      hl.dispatch(hl.dsp.exec_cmd("bash " .. script .. " view"))
-    end
-  end
-end
-
-o.bind("SUPER + SHIFT + CTRL + V", "Mesh Peek", meshpeek_open(), { release = true })
+```sh
+bash ~/.config/omarchy/plugins/io.github.monomyth.meshpeek/scripts/install-bind.sh
 ```
+
+…or paste `bindings.hypr.lua.example` into `~/.config/hypr/bindings.lua` yourself.
+
+The install script only adds the bind if that chord is free; if something else owns it, it prints the conflict and exits.
 
 Needs Chromium (or Chrome), plus `wl-paste`, `jq`, and `hyprctl`. First open caches Three.js under `~/.cache/omarchy/meshpeek/` (once; refreshes about weekly).
 
