@@ -3,15 +3,22 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-VIEWER="$PLUGIN_DIR/viewer/index.html"
+VIEWER_SRC="$PLUGIN_DIR/viewer/index.html"
 MODEL="${1:-}"
 if [[ -z "$MODEL" || ! -f "$MODEL" ]]; then
   notify-send -u low "Mesh Peek" "No model file for web viewer"
   echo "no file: $MODEL" >&2
   exit 1
 fi
-if [[ ! -f "$VIEWER" ]]; then
+if [[ ! -f "$VIEWER_SRC" ]]; then
   notify-send -u critical "Mesh Peek" "viewer/index.html missing"
+  exit 1
+fi
+
+# Populate XDG cache for Three.js (outside git); capture cache dir
+CACHE_DIR="$("$SCRIPT_DIR/ensure-vendor.py")"
+if [[ -z "$CACHE_DIR" || ! -d "$CACHE_DIR" ]]; then
+  notify-send -u critical "Mesh Peek" "ensure-vendor.py failed"
   exit 1
 fi
 
@@ -29,7 +36,18 @@ mkdir -p "$STATE_DIR"
 ext="${MODEL##*.}"
 MODEL_LINK="$STATE_DIR/model.$ext"
 ln -sfn "$MODEL" "$MODEL_LINK"
-cp -f "$VIEWER" "$STATE_DIR/index.html"
+
+# Runtime layout:
+#   STATE/viewer/index.html
+#   STATE/viewer/vendor/three/three.module.js
+#   STATE/viewer/vendor/three/examples/jsm/...
+rm -rf "$STATE_DIR/viewer"
+mkdir -p "$STATE_DIR/viewer/vendor"
+cp -a "$VIEWER_SRC" "$STATE_DIR/viewer/index.html"
+# Symlink cache into vendor/three so importmap ./vendor/three/... resolves
+ln -sfn "$CACHE_DIR" "$STATE_DIR/viewer/vendor/three"
+
+INDEX_REL="viewer/index.html"
 
 python3 - "$PORT" "$STATE_DIR" "$MODEL_LINK" <<'PY' &
 import http.server, socketserver, sys, os, urllib.parse
@@ -52,7 +70,7 @@ PY
 SERVER_PID=$!
 
 UP_AXIS="${MODELVIEW_UP:-+Z}"
-URL="http://127.0.0.1:${PORT}/index.html?file=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "/model.$ext")&up=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$UP_AXIS")"
+URL="http://127.0.0.1:${PORT}/viewer/index.html?file=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "/model.$ext")&up=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$UP_AXIS")"
 
 CHROME=""
 for c in chromium chromium-browser google-chrome-stable google-chrome brave; do

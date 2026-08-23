@@ -5,46 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mesh Peek</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #2e2f33; overflow: hidden; font-family: system-ui, sans-serif; }
-    #hud { position: absolute; left: 12px; bottom: 10px; color: #c8c8cc; font-size: 12px; opacity: 0.85; pointer-events: none; }
-    #err { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #f2a; padding: 24px; text-align: center; }
+    html, body { margin: 0; height: 100%; background: #45464c; overflow: hidden; font-family: system-ui, sans-serif; }
+    #hud { position: absolute; left: 12px; bottom: 10px; color: #c8c8cc; font-size: 12px; opacity: 0.9; pointer-events: none; }
+    #err { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #f66; padding: 24px; text-align: center; background: #2a2b2f; z-index: 2; }
   </style>
 </head>
 <body>
-  <div id="hud">drag · scroll zoom · right-drag pan</div>
+  <div id="hud">loading…</div>
   <div id="err"></div>
   <script type="importmap">
   {
     "imports": {
-      "three": "./vendor/three/three.module.js",
-      "three/addons/": "./vendor/three/examples/jsm/"
+      "three": "./vendor/three/three.module.js"
     }
   }
   </script>
   <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-    import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
-    import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-
-    const params = new URLSearchParams(location.search);
-    const fileUrl = params.get('file');
-    // Match f3d MODELVIEW_UP default: print/CAD Z-up (Three.js is Y-up natively)
-    const upAxis = (params.get('up') || '+Z').toUpperCase();
     const errEl = document.getElementById('err');
     const hud = document.getElementById('hud');
-
     function fail(msg) {
       errEl.style.display = 'flex';
       errEl.textContent = msg;
+      console.error(msg);
     }
+    window.addEventListener('error', (e) => fail('JS: ' + (e.message || e.error)));
+    window.addEventListener('unhandledrejection', (e) => fail('Promise: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)));
 
-    if (!fileUrl) {
-      fail('Missing ?file= URL');
-      throw new Error('no file');
-    }
+    import * as THREE from 'three';
+    import { STLLoader } from './vendor/three/examples/jsm/loaders/STLLoader.js';
+
+    const params = new URLSearchParams(location.search);
+    const fileUrl = params.get('file');
+    const upAxis = (params.get('up') || '+Z').toUpperCase();
+    if (!fileUrl) { fail('Missing ?file='); throw new Error('no file'); }
 
     function upVector(axis) {
       switch (axis) {
@@ -57,77 +50,89 @@
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x2e2f33);
+    scene.background = new THREE.Color(0x45464c);
     const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.01, 5000);
     camera.up.copy(upVector(upAxis));
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(devicePixelRatio);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setClearColor(0x45464c, 1);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setSize(innerWidth, innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+    scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+    const key = new THREE.DirectionalLight(0xffffff, 1.15);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.4);
+    scene.add(key); scene.add(fill);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-    const key = new THREE.DirectionalLight(0xffffff, 1.05);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.35);
-    scene.add(key);
-    scene.add(fill);
-
-    // GridHelper is XZ-plane (Y-up). For Z-up, rotate onto XY so the "floor" is horizontal.
-    const grid = new THREE.GridHelper(20, 20, 0x55565a, 0x3a3b3f);
-    if (upAxis === '+Z' || upAxis === '-Z') {
-      grid.rotation.x = Math.PI / 2;
-    }
+    const grid = new THREE.GridHelper(20, 20, 0x6a6b70, 0x505156);
+    if (upAxis === '+Z' || upAxis === '-Z') grid.rotation.x = Math.PI / 2;
     scene.add(grid);
-    const axes = new THREE.AxesHelper(1);
-    scene.add(axes);
+    scene.add(new THREE.AxesHelper(1));
 
-    const clay = new THREE.MeshStandardMaterial({
-      color: 0xc7c7cc, roughness: 0.55, metalness: 0.0
+    const clay = new THREE.MeshStandardMaterial({ color: 0xe8e8ec, roughness: 0.4, metalness: 0.0 });
+
+    // Minimal orbit (no OrbitControls addon)
+    const target = new THREE.Vector3();
+    let sph = new THREE.Spherical(3, Math.PI / 2 - 0.49, 0.7); // elev~28°, az~40°
+    let dragging = false, button = 0, lastX = 0, lastY = 0;
+    function placeCam() {
+      camera.position.setFromSpherical(sph).add(target);
+      camera.lookAt(target);
+    }
+    placeCam();
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      dragging = true; button = e.button; lastX = e.clientX; lastY = e.clientY;
+      renderer.domElement.setPointerCapture(e.pointerId);
     });
+    renderer.domElement.addEventListener('pointerup', () => { dragging = false; });
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      if (button === 0) {
+        sph.theta -= dx * 0.005;
+        sph.phi = Math.min(Math.max(0.05, sph.phi + dy * 0.005), Math.PI - 0.05);
+      } else {
+        const pan = new THREE.Vector3();
+        const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
+        const up = camera.up.clone().normalize();
+        pan.addScaledVector(right, -dx * sph.radius * 0.0015);
+        pan.addScaledVector(up, dy * sph.radius * 0.0015);
+        target.add(pan);
+      }
+      placeCam();
+    });
+    renderer.domElement.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      sph.radius = Math.min(Math.max(sph.radius * (e.deltaY > 0 ? 1.1 : 0.9), 0.05), 5000);
+      placeCam();
+    }, { passive: false });
+    renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
     function fit(object) {
       object.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(object);
-      const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
       object.position.sub(center);
       object.updateMatrixWorld(true);
       const box2 = new THREE.Box3().setFromObject(object);
       const size2 = box2.getSize(new THREE.Vector3());
       const maxDim = Math.max(size2.x, size2.y, size2.z) || 1;
-
-      // Sit the floor under the model along the up axis
       if (upAxis === '+Z' || upAxis === '-Z') {
         grid.position.set(0, 0, box2.min.z);
-        // Clay-ish: azimuth ~40°, elevation ~28° in Z-up
-        const d = maxDim * 2.2;
-        const az = (40 * Math.PI) / 180;
-        const el = (28 * Math.PI) / 180;
-        camera.position.set(
-          d * Math.sin(az) * Math.cos(el),
-          d * Math.cos(az) * Math.cos(el),
-          d * Math.sin(el)
-        );
         key.position.set(maxDim * 2, maxDim * 1.2, maxDim * 3);
         fill.position.set(-maxDim * 1.5, -maxDim * 0.8, maxDim * 0.6);
       } else {
         grid.position.set(0, box2.min.y, 0);
-        camera.position.set(maxDim * 1.6, maxDim * 1.1, maxDim * 1.6);
         key.position.set(3, 5, 2);
         fill.position.set(-2, 1, -1);
       }
-
-      // Scale grid to model footprint
       const footprint = Math.max(size2.x, size2.y, size2.z) * 2.5;
-      const gScale = Math.max(footprint / 20, 0.05);
-      grid.scale.setScalar(gScale);
-      axes.scale.setScalar(maxDim * 0.25);
-
-      controls.target.set(0, 0, 0);
-      controls.update();
+      grid.scale.setScalar(Math.max(footprint / 20, 0.05));
+      sph.radius = maxDim * 2.4;
+      target.set(0, 0, 0);
+      placeCam();
       camera.near = maxDim / 200;
       camera.far = maxDim * 50;
       camera.updateProjectionMatrix();
@@ -143,32 +148,35 @@
     const name = decodeURIComponent(fileUrl.split('/').pop().split('?')[0]).toLowerCase();
     hud.textContent = name + ' · ' + upAxis + ' up · drag · scroll zoom · right-drag pan';
 
-    const loaders = [
-      [/\.stl$/i, () => new STLLoader().loadAsync(fileUrl).then(addMesh)],
-      [/\.3mf$/i, () => new ThreeMFLoader().loadAsync(fileUrl).then(obj => { scene.add(obj); fit(obj); })],
-      [/\.obj$/i, () => new OBJLoader().loadAsync(fileUrl).then(obj => {
-        obj.traverse(c => { if (c.isMesh) c.material = clay; });
+    async function load() {
+      if (/\.stl$/i.test(name)) {
+        addMesh(await new STLLoader().loadAsync(fileUrl));
+      } else if (/\.3mf$/i.test(name)) {
+        const { ThreeMFLoader } = await import('./vendor/three/examples/jsm/loaders/3MFLoader.js');
+        const obj = await new ThreeMFLoader().loadAsync(fileUrl);
         scene.add(obj); fit(obj);
-      })],
-      [/\.(gltf|glb)$/i, () => new GLTFLoader().loadAsync(fileUrl).then(g => { scene.add(g.scene); fit(g.scene); })],
-    ];
-
-    const hit = loaders.find(([re]) => re.test(name));
-    if (!hit) {
-      fail('Unsupported type: ' + name);
-    } else {
-      hit[1]().catch(e => fail(String(e)));
+      } else if (/\.obj$/i.test(name)) {
+        const { OBJLoader } = await import('./vendor/three/examples/jsm/loaders/OBJLoader.js');
+        const obj = await new OBJLoader().loadAsync(fileUrl);
+        obj.traverse((c) => { if (c.isMesh) c.material = clay; });
+        scene.add(obj); fit(obj);
+      } else if (/\.(gltf|glb)$/i.test(name)) {
+        const { GLTFLoader } = await import('./vendor/three/examples/jsm/loaders/GLTFLoader.js');
+        const g = await new GLTFLoader().loadAsync(fileUrl);
+        scene.add(g.scene); fit(g.scene);
+      } else {
+        fail('Unsupported: ' + name);
+      }
     }
+    load().catch((e) => fail('Load failed: ' + (e && e.message ? e.message : e)));
 
     addEventListener('resize', () => {
       camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight);
     });
-
     (function tick() {
       requestAnimationFrame(tick);
-      controls.update();
       renderer.render(scene, camera);
     })();
   </script>

@@ -1,0 +1,8 @@
+# Vendored Three.js must not live in the repo; fetched to XDG cache.
+viewer/vendor/
+# Local preview assets (optional)
+preview-alt.png
+preview-src.png
+# Cache paths (if ever linked/copied into tree)
+.cache/
+**/meshpeek/three-*/

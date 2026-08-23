@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "local.meshpeek",
   "name": "Mesh Peek",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "Eugene Ray / Senior Engineer",
   "license": "MIT",
   "description": "One shortcut: Files selection opens Chromium+Three.js (f3d if installed); else confirm picker.",
