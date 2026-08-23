@@ -127,8 +127,8 @@ fi
 "$CHROME" --new-window --app="$URL" >/dev/null 2>&1 &
 CHROME_PID=$!
 
-# Maximum lifetime safety net (30 minutes)
-MAX_LIFETIME=1800
+# Maximum lifetime safety net (5 minutes)
+MAX_LIFETIME=300
 
 cleanup() {
   kill "$SERVER_PID" 2>/dev/null || true
