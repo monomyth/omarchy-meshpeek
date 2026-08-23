@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "local.modelview",
   "name": "Model View",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "author": "Eugene Ray / Senior Engineer",
   "license": "MIT",
-  "description": "One shortcut: Files selection opens viewer (f3d or Chromium+Three.js); else confirm picker.",
+  "description": "One shortcut: Files selection opens Chromium+Three.js (or f3d); else confirm picker.",
   "kinds": [
     "service",
     "bar-widget"

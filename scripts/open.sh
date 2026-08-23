@@ -66,14 +66,14 @@ studio_flags() {
 
 need_f3d() {
   if ! command -v f3d >/dev/null 2>&1; then
-    notify-send -u critical "Model View" "f3d is not installed. Try: yay -S f3d (or MODELVIEW_BACKEND=threejs)"
+    notify-send -u critical "Model View" "f3d is not installed. Try: yay -S f3d (or leave MODELVIEW_BACKEND=threejs)"
     echo "f3d missing" >&2
     exit 127
   fi
 }
 
 backend() {
-  printf '%s' "${MODELVIEW_BACKEND:-f3d}"
+  printf '%s' "${MODELVIEW_BACKEND:-threejs}"
 }
 
 need_viewer() {
@@ -272,7 +272,7 @@ case "$MODE" in
     ;;
   *)
     echo "usage: open.sh [clay|studio] view|open <path>|inspect [path]|web [path]" >&2
-    echo "  MODELVIEW_BACKEND=f3d|threejs  (default f3d)" >&2
+    echo "  MODELVIEW_BACKEND=threejs|f3d  (default threejs)" >&2
     exit 2
     ;;
 esac
