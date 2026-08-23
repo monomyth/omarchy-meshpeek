@@ -1,47 +1,13 @@
--- Keep only your personal keybinding overrides here. Add new bindings or
--- unbind defaults before replacing them.
+-- Mesh Peek — paste into ~/.config/hypr/bindings.lua
+-- Files focused → copy selection then open; otherwise newest-folder confirm picker.
 
--- See current bindings and descriptions:
---   omarchy menu keybindings --print
-
--- To disable every Omarchy default binding, set this in
--- ~/.config/hypr/hyprland.lua before require("default.hypr.omarchy"), then add
--- only the bindings you want below:
---   omarchy_default_bindings = false
-
--- To disable all preinstalled app/webapp bindings, set:
---   omarchy_preinstalled_bindings = false
-
--- Add a new binding.
--- o.bind("SUPER + SHIFT + R", "SSH", "alacritty -e ssh your-server")
-
--- Change an existing binding by unbinding it first, then binding the key again.
--- This example changes SUPER+SPACE from the launcher to the Omarchy root menu.
--- hl.unbind("SUPER + SPACE")
--- o.bind("SUPER + SPACE", "Omarchy menu", "omarchy-menu toggle root")
-
--- Disable a default binding without replacing it.
--- hl.unbind("SUPER + SHIFT + B")
-
--- Logitech MX Keys examples:
--- o.bind("SUPER + SHIFT + S", nil, "omarchy-capture-screenshot")
--- o.bind("SUPER + H", nil, "voxtype record toggle")
--- o.bind("SUPER + PERIOD", nil, "omarchy-shell shell toggle omarchy.emojis")
-
-
--- optional studio profile (3D Artist); leave unbound unless you want it:
-
--- Files selection → view; else newest folder + confirm picker
-
--- Mesh Peek: one shortcut
--- Files focused → copy selection (Hypr send_key_state) then open that file
--- Otherwise → newest-folder confirm picker
 local function meshpeek_open()
   return function()
     local win = hl.get_active_window()
     local class = win and (win.class or win.initialClass or "") or ""
     local in_files = type(class) == "string" and class:find("Nautilus") ~= nil
-    local script = "/home/monomyth/.config/omarchy/plugins/io.github.monomyth.meshpeek/scripts/open.sh"
+    local home = os.getenv("HOME") or ""
+    local script = home .. "/.config/omarchy/plugins/io.github.monomyth.meshpeek/scripts/open.sh"
 
     if in_files then
       hl.dispatch(hl.dsp.exec_cmd("wl-copy --clear"))

@@ -1,10 +1,10 @@
 # Mesh Peek
 
-Keyboard-first glance at STL, 3MF, OBJ, and glTF models on [Omarchy](https://omarchy.org/) Quattro. Hit one shortcut, orbit a clay-shaded preview in Chromium + Three.js, and close the window when you’re done — no full CAD app.
+Keyboard-first STL / 3MF glance for [Omarchy](https://omarchy.org/) Quattro.
 
-**Super+Shift+Ctrl+V** opens the model Files has selected. If nothing’s selected (or you’re in another app), you get a file picker near your newest download under `~/Downloads` or `~/Prints`. Drag to orbit, scroll to zoom, right-drag to pan. Print/CAD files are Z-up by default.
+One shortcut opens a clay-shaded Three.js viewer in Chromium. Not a slicer, not a CAD suite. Just a quick look at the mesh. STL, 3MF, OBJ, glTF, and glb are supported. Print/CAD files are Z-up by default.
 
-![Mesh Peek showing 3D Benchy](preview.png)
+![preview](preview.png)
 
 ## Install
 
@@ -12,26 +12,59 @@ Keyboard-first glance at STL, 3MF, OBJ, and glTF models on [Omarchy](https://oma
 omarchy plugin add https://github.com/monomyth/omarchy-meshpeek.git --enable
 ```
 
-Add the keybind from `bindings.hypr.lua.example` to `~/.config/hypr/bindings.lua` (one **Super+Shift+Ctrl+V** binding).
+Add this to `~/.config/hypr/bindings.lua` (also in `bindings.hypr.lua.example`):
 
-Needs Chromium (or Chrome). First open downloads Three.js into `~/.cache/omarchy/meshpeek/` (once; refreshes about weekly). Also uses `wl-paste`, `jq`, and `hyprctl`.
+```lua
+-- Mesh Peek — Files focused → copy selection then open; otherwise newest-folder picker.
+local function meshpeek_open()
+  return function()
+    local win = hl.get_active_window()
+    local class = win and (win.class or win.initialClass or "") or ""
+    local in_files = type(class) == "string" and class:find("Nautilus") ~= nil
+    local home = os.getenv("HOME") or ""
+    local script = home .. "/.config/omarchy/plugins/io.github.monomyth.meshpeek/scripts/open.sh"
 
-## Usage
+    if in_files then
+      hl.dispatch(hl.dsp.exec_cmd("wl-copy --clear"))
+      hl.timer(function()
+        hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL", key = "C", state = "down" }))
+        hl.timer(function()
+          hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL", key = "C", state = "up" }))
+          hl.timer(function()
+            hl.dispatch(hl.dsp.exec_cmd("bash " .. script .. " from-clipboard"))
+          end, { timeout = 100, type = "oneshot" })
+        end, { timeout = 50, type = "oneshot" })
+      end, { timeout = 40, type = "oneshot" })
+    else
+      hl.dispatch(hl.dsp.exec_cmd("bash " .. script .. " view"))
+    end
+  end
+end
+
+o.bind("SUPER + SHIFT + CTRL + V", "Mesh Peek", meshpeek_open(), { release = true })
+```
+
+Needs Chromium (or Chrome), plus `wl-paste`, `jq`, and `hyprctl`. First open caches Three.js under `~/.cache/omarchy/meshpeek/` (once; refreshes about weekly).
+
+## Shortcut
+
+**Super+Shift+Ctrl+V**
 
 | Situation | What happens |
 | --- | --- |
 | Files focused, model selected | Opens that model |
-| Files focused, nothing selected | Picker (won’t reopen a stale clipboard file) |
+| Files focused, nothing selected | Picker (won't reopen a stale clipboard file) |
 | Any other app | Picker near newest model under Downloads / Prints |
 
-Close the Chromium window when you’re done. An optional bar icon exists, but the keybind is the intended UI.
+## In the viewer
 
-### Keyboard / pointer
+| Input | Action |
+| --- | --- |
+| Drag | Orbit |
+| Scroll | Zoom |
+| Right-drag | Pan |
 
-- **Super+Shift+Ctrl+V** — open Mesh Peek
-- **Drag** — orbit
-- **Scroll** — zoom
-- **Right-drag** — pan
+Close the Chromium window when you're done. An optional bar icon exists; the keybind is the intended UI.
 
 ## Remove
 
@@ -41,9 +74,11 @@ omarchy plugin remove io.github.monomyth.meshpeek
 
 ## Optional
 
+Default backend: **f3d if installed, otherwise Three.js**.
+
 ```bash
-export MODELVIEW_UP=+Z    # or +Y / -Z / -Y
-export MODELVIEW_BACKEND=f3d   # only if you have f3d installed
+export MODELVIEW_UP=+Z            # or +Y / -Z / -Y
+export MODELVIEW_BACKEND=threejs  # or f3d (must be installed)
 ```
 
 ## License
