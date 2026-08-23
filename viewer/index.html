@@ -35,9 +35,15 @@
     import { STLLoader } from './vendor/three/examples/jsm/loaders/STLLoader.js';
 
     const params = new URLSearchParams(location.search);
-    const fileUrl = params.get('file');
+    const token = params.get('token');
+    const rawFileUrl = params.get('file');
     const upAxis = (params.get('up') || '+Z').toUpperCase();
-    if (!fileUrl) { fail('Missing ?file='); throw new Error('no file'); }
+    if (!rawFileUrl) { fail('Missing ?file='); throw new Error('no file'); }
+
+    // Forward auth token to model fetch URL
+    const fileUrl = token
+      ? rawFileUrl + (rawFileUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token)
+      : rawFileUrl;
 
     function upVector(axis) {
       switch (axis) {
