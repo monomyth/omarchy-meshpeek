@@ -1,48 +1,46 @@
 #!/usr/bin/env bash
-# omarchy:summary=Open an STL/3MF (or path) in f3d for a quick glance
+# omarchy:summary=Open STL/3MF in f3d — Files selection, else newest+confirm picker
 set -euo pipefail
 
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/modelview"
 LAST_FILE="$STATE_DIR/last"
 mkdir -p "$STATE_DIR"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UP_AXIS="${MODELVIEW_UP:-+Z}"
-MODE="${1:-last}"
+PROFILE="${MODELVIEW_PROFILE:-clay}"
+MODE="${1:-view}"
 shift || true
 
-# Optional profile: clay (default, Blender Expert) | studio (3D Artist) | inspect (edges)
-PROFILE="${MODELVIEW_PROFILE:-clay}"
-
-# Resolve leading profile token if present: open.sh studio last | open.sh last
 case "$MODE" in
   clay|studio)
     PROFILE="$MODE"
-    MODE="${1:-last}"
+    MODE="${1:-view}"
     shift || true
     ;;
 esac
 
-# Blender Expert — default clay / Z-up print glance
+MODEL_EXT_RE='\.(stl|3mf|obj|gltf|glb)$'
+
 clay_flags() {
   F3D_FLAGS=(
     --up="$UP_AXIS"
     --grid
     --axis
     --filename
-    --anti-aliasing
+    --anti-aliasing=fxaa
     --background-color=0.22,0.23,0.25
     --color=0.78,0.78,0.80
     --roughness=0.55
     --metallic=0
-    --hdri-ambient=0.85
-    --camera-azimuth=40
-    --camera-elevation=22
-    --camera-zoom=1.0
-    --no-render-pass-volume
+    --hdri-ambient
+    --light-intensity=0.85
+    --camera-azimuth-angle=40
+    --camera-elevation-angle=28
+    --camera-zoom-factor=1.0
   )
 }
 
-# 3D Artist — optional studio plastic hero 3/4
 studio_flags() {
   F3D_FLAGS=(
     --up="$UP_AXIS"
@@ -68,7 +66,7 @@ studio_flags() {
 
 need_f3d() {
   if ! command -v f3d >/dev/null 2>&1; then
-    notify-send -u critical "Model View" "f3d is not installed. Try: yay -S f3d  (or pacman -S f3d)"
+    notify-send -u critical "Model View" "f3d is not installed. Try: yay -S f3d"
     echo "f3d missing" >&2
     exit 127
   fi
@@ -78,7 +76,69 @@ record_last() {
   printf '%s\n' "$1" >"$LAST_FILE"
 }
 
-find_last() {
+is_model() {
+  [[ -n "$1" && -f "$1" && "$1" =~ $MODEL_EXT_RE ]]
+}
+
+uri_list_to_path() {
+  python3 -c 'import sys,urllib.parse
+raw=sys.argv[1]
+for line in raw.splitlines():
+  line=line.strip()
+  if not line or line.startswith("#"): continue
+  if line.startswith("file:"):
+    print(urllib.parse.unquote(urllib.parse.urlparse(line).path)); break
+  if line.startswith("/"):
+    print(line); break' "$1"
+}
+
+nautilus_address() {
+  hyprctl clients -j 2>/dev/null | jq -r '.[] | select((.class // "") | test("Nautilus|org.gnome.Nautilus"; "i")) | select(.mapped == true) | .address' 2>/dev/null | head -1
+}
+
+files_focused() {
+  local c
+  c=$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // empty' 2>/dev/null || true)
+  case "$c" in
+    org.gnome.Nautilus|Nautilus|*[Nn]autilus*) return 0 ;;
+  esac
+  # Also true if Files is open — shortcut often fires with focus elsewhere
+  [[ -n "$(nautilus_address)" ]]
+}
+
+read_clipboard_model() {
+  local uris path
+  uris=$(wl-paste -t text/uri-list 2>/dev/null || true)
+  if [[ -z "$uris" ]]; then
+    uris=$(wl-paste 2>/dev/null || true)
+  fi
+  [[ -z "$uris" ]] && return 1
+  path=$(uri_list_to_path "$uris")
+  path=$(printf '%s' "$path" | tr -d '\r')
+  is_model "$path" || return 1
+  printf '%s' "$path"
+}
+
+files_selection_path() {
+  local addr prev path
+  addr=$(nautilus_address)
+  [[ -n "$addr" ]] || return 1
+  prev=$(hyprctl activewindow -j 2>/dev/null | jq -r '.address // empty' 2>/dev/null || true)
+  hyprctl dispatch focuswindow "address:$addr" >/dev/null 2>&1 || true
+  sleep 0.08
+  # Hyprland expects CONTROL, not CTRL
+  hyprctl dispatch sendshortcut "CONTROL,C," >/dev/null 2>&1 || \
+    hyprctl dispatch sendshortcut "CTRL,C," >/dev/null 2>&1 || true
+  sleep 0.18
+  path=$(read_clipboard_model || true)
+  if [[ -n "$prev" && "$prev" != "$addr" ]]; then
+    hyprctl dispatch focuswindow "address:$prev" >/dev/null 2>&1 || true
+  fi
+  [[ -n "$path" ]] || return 1
+  printf '%s' "$path"
+}
+
+find_newest() {
   local dirs=("$HOME/Downloads" "$HOME/Prints" "$HOME/print" "$HOME/models")
   if [[ -n "${MODELVIEW_WATCH_DIRS:-}" ]]; then
     IFS=':' read -r -a extra <<<"$MODELVIEW_WATCH_DIRS"
@@ -89,9 +149,6 @@ find_last() {
     | sort -nr \
     | head -1 \
     | cut -d' ' -f2-)
-  if [[ -z "$found" && -f "$LAST_FILE" ]]; then
-    found=$(cat "$LAST_FILE")
-  fi
   printf '%s' "$found"
 }
 
@@ -119,31 +176,61 @@ open_path() {
   fi
 }
 
+view_flow() {
+  # Outside Files — confirm picker near newest model
+  need_f3d
+  local path="" newest folder hint
+  newest=$(find_newest)
+  if [[ -n "$newest" && -f "$newest" ]]; then
+    folder=$(dirname "$newest")
+    hint=$(basename "$newest")
+    path=$("$SCRIPT_DIR/select_confirm.py" \
+      --title "Model View — confirm $hint (or pick another)" \
+      --folder "$folder" \
+      --extensions "stl 3mf obj gltf glb" || true)
+  else
+    path=$("$SCRIPT_DIR/select_confirm.py" \
+      --title "Model View — pick a model" \
+      --folder "${HOME}/Downloads" \
+      --extensions "stl 3mf obj gltf glb" || true)
+  fi
+  path=$(printf '%s' "${path:-}" | tr -d '\r' | head -1)
+  [[ -z "$path" ]] && exit 0
+  open_path "$path" 0
+}
+
 case "$MODE" in
-  last)
+  from-clipboard|clipboard)
     need_f3d
-    open_path "$(find_last)" 0
-    ;;
-  pick)
-    need_f3d
-    path=$(omarchy-file-select --title "Model View" --extensions "stl 3mf obj gltf glb" || true)
-    [[ -z "${path:-}" ]] && exit 0
-    open_path "$path" 0
-    ;;
-  inspect|edges)
-    need_f3d
-    if [[ -n "${1:-}" ]]; then
-      open_path "$1" 1
-    else
-      open_path "$(find_last)" 1
+    path=$(read_clipboard_model || true)
+    if [[ -z "$path" ]]; then
+      # uri-list may need a beat after Hypr copy
+      sleep 0.05
+      path=$(read_clipboard_model || true)
     fi
+    if [[ -n "$path" ]]; then
+      open_path "$path" 0
+    else
+      # empty selection in Files → same picker as other apps
+      view_flow
+    fi
+    ;;
+  view|"")
+    view_flow
     ;;
   open)
     need_f3d
     open_path "${1:-}" 0
     ;;
+  inspect|edges)
+    need_f3d
+    open_path "${1:-$(find_newest)}" 1
+    ;;
+  last|pick)
+    view_flow
+    ;;
   *)
-    echo "usage: open.sh [clay|studio] last|pick|open <path>|inspect [path]" >&2
+    echo "usage: open.sh [clay|studio] view|open <path>|inspect [path]" >&2
     exit 2
     ;;
 esac

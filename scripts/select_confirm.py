@@ -1,0 +1,96 @@
+#!/usr/bin/python3
+"""File chooser that opens in a suggested folder for confirm."""
+import argparse
+import os
+import sys
+
+import gi
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib
+
+ANSWER_TIMEOUT_SEC = 600
+EXIT_NOTHING_PICKED = 1
+EXIT_CHOOSER_FAILED = 2
+
+def main():
+    p = argparse.ArgumentParser(add_help=False)
+    p.add_argument("--title", default="Model View")
+    p.add_argument("--folder", default="")
+    p.add_argument("--extensions", default="stl 3mf obj gltf glb")
+    args, unknown = p.parse_known_args()
+    if unknown:
+        print("select_confirm: unknown option %s" % unknown[0], file=sys.stderr)
+        return EXIT_CHOOSER_FAILED
+
+    bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+    loop = GLib.MainLoop()
+    uris = []
+
+    def on_response(connection, sender, path, interface, signal, params):
+        code, results = params.unpack()
+        if code == 0:
+            uris.extend(results.get("uris", []))
+        loop.quit()
+
+    def subscribe(path):
+        bus.signal_subscribe(
+            "org.freedesktop.portal.Desktop",
+            "org.freedesktop.portal.Request",
+            "Response",
+            path,
+            None,
+            Gio.DBusSignalFlags.NONE,
+            on_response,
+        )
+
+    token = "modelview%d" % os.getpid()
+    sender = bus.get_unique_name()[1:].replace(".", "_")
+    predicted = "/org/freedesktop/portal/desktop/request/%s/%s" % (sender, token)
+    subscribe(predicted)
+
+    options = {
+        "handle_token": GLib.Variant("s", token),
+        "multiple": GLib.Variant("b", False),
+    }
+
+    if args.folder and os.path.isdir(args.folder):
+        options["current_folder"] = GLib.Variant("ay", args.folder.encode() + b"\0")
+
+    if args.extensions:
+        exts = [ext.lstrip(".").lower() for ext in args.extensions.split()]
+        patterns = [(0, "*." + ext) for ext in exts] + [(0, "*." + ext.upper()) for ext in exts]
+        label = " ".join("*." + ext for ext in exts)
+        filters = GLib.Variant("a(sa(us))", [(label, patterns)])
+        options["filters"] = filters
+        options["current_filter"] = GLib.Variant("(sa(us))", (label, patterns))
+
+    handle = bus.call_sync(
+        "org.freedesktop.portal.Desktop",
+        "/org/freedesktop/portal/desktop",
+        "org.freedesktop.portal.FileChooser",
+        "OpenFile",
+        GLib.Variant("(ssa{sv})", ("", args.title, options)),
+        None,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        None,
+    ).unpack()[0]
+
+    if handle != predicted:
+        subscribe(handle)
+
+    GLib.timeout_add_seconds(ANSWER_TIMEOUT_SEC, loop.quit)
+    loop.run()
+
+    for uri in uris:
+        print(GLib.filename_from_uri(uri)[0])
+
+    return 0 if uris else EXIT_NOTHING_PICKED
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except GLib.Error as error:
+        print("select_confirm: %s" % error.message, file=sys.stderr)
+        sys.exit(EXIT_CHOOSER_FAILED)

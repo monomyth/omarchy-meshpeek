@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "local.modelview",
   "name": "Model View",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "author": "Eugene Ray / Senior Engineer",
   "license": "MIT",
-  "description": "Keyboard-first STL/3MF glance via f3d. Default clay (Blender); optional studio profile (3D Artist); inspect edges.",
+  "description": "One shortcut: Files selection opens f3d; else newest model folder + confirm picker.",
   "kinds": [
     "service",
     "bar-widget"
@@ -17,7 +17,7 @@
   },
   "barWidget": {
     "displayName": "Model View",
-    "description": "Optional bar icon; prefer the keybind. Opens last model or file picker.",
+    "description": "Optional bar icon; prefer Super+Shift+Ctrl+V.",
     "category": "Hardware",
     "aliases": [
       "stl",
@@ -42,9 +42,9 @@
       {
         "key": "watchDirs",
         "type": "string",
-        "label": "Extra dirs for last-export search (colon-separated)",
+        "label": "Extra dirs for newest-model search (colon-separated)",
         "defaultValue": "",
-        "description": "Appended after ~/Downloads and ~/Prints when resolving 'last'."
+        "description": "Appended after ~/Downloads and ~/Prints when suggesting newest."
       },
       {
         "key": "upAxis",

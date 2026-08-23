@@ -1,8 +1,4 @@
--- Model View (local.modelview) — paste into ~/.config/hypr/bindings.lua
--- Requires: omarchy plugin enable local.modelview; f3d installed
-
-o.bind("SUPER + SHIFT + CTRL + M", "Model View (last export)", "omarchy-shell local.modelview last")
-o.bind("SUPER + SHIFT + ALT + M", "Model View (pick file)", "omarchy-shell local.modelview pick")
-o.bind("SUPER + SHIFT + CTRL + ALT + M", "Model View (inspect edges)", "omarchy-shell local.modelview inspect")
--- optional studio profile (3D Artist); leave unbound unless you want it:
--- o.bind("SUPER + SHIFT + CTRL + S", "Model View (studio)", "omarchy-shell local.modelview studio")
+-- Model View — one shortcut (paste into ~/.config/hypr/bindings.lua)
+-- Prefer the Lua modelview_open() in bindings.hypr.lua.example (Files copy + picker).
+-- Minimal string form (picker / open.sh view only):
+o.bind("SUPER + SHIFT + CTRL + V", "Model View", "bash $HOME/.config/omarchy/plugins/local.modelview/scripts/open.sh view", { release = true })

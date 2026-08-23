@@ -31,15 +31,13 @@ Item {
   IpcHandler {
     target: "local.modelview"
 
-    function last(): string {
-      root.run("last", "", "clay")
+    function view(): string {
+      root.run("view", "", "clay")
       return "ok"
     }
 
-    function pick(): string {
-      root.run("pick", "", "clay")
-      return "ok"
-    }
+    function last(): string { return view() }
+    function pick(): string { return view() }
 
     function open(path: string): string {
       root.run("open", path, "clay")
@@ -51,14 +49,8 @@ Item {
       return "ok"
     }
 
-    // Optional 3D Artist studio-plastic profile (does not replace clay default)
     function studio(): string {
-      root.run("last", "", "studio")
-      return "ok"
-    }
-
-    function studioPick(): string {
-      root.run("pick", "", "studio")
+      root.run("view", "", "studio")
       return "ok"
     }
   }

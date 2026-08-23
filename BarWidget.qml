@@ -22,12 +22,12 @@ BarWidget {
   implicitHeight: showIcon ? button.implicitHeight : 0
   visible: showIcon
 
-  function launch(mode) {
+  function launch() {
     runner.command = [
       "env",
       "MODELVIEW_UP=" + upAxis,
       "MODELVIEW_WATCH_DIRS=" + watchDirs,
-      "bash", openScript, mode
+      "bash", openScript, "view"
     ]
     runner.running = true
   }
@@ -42,15 +42,11 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     visible: root.showIcon
-    // Nerd Font: cube
     text: "󰆧"
     slotSize: Style.bar.statusSlot
-    tooltipText: "Model View — left: last export, right: pick file"
+    tooltipText: "Model View — Files selection, or newest + confirm"
     onPressed: function(mouseButton) {
-      if (mouseButton === Qt.RightButton)
-        root.launch("pick")
-      else
-        root.launch("last")
+      root.launch()
     }
   }
 }
