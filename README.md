@@ -2,7 +2,7 @@
 
 Keyboard-first STL/3MF glance for Omarchy Quattro.
 
-**Default display:** Chromium + Three.js. Fallback: [f3d](https://f3d.app) via `MODELVIEW_BACKEND=f3d`.
+**Default display:** [f3d](https://f3d.app) when installed, otherwise Chromium + Three.js.
 
 ## One shortcut
 
@@ -15,17 +15,18 @@ Keyboard-first STL/3MF glance for Omarchy Quattro.
 ## Backends
 
 ```bash
-# default (Chromium + Three.js)
-unset MODELVIEW_BACKEND   # same as threejs
+# auto (default): f3d if on PATH, else threejs
+unset MODELVIEW_BACKEND
 
-# force f3d
+# force either
 export MODELVIEW_BACKEND=f3d
+export MODELVIEW_BACKEND=threejs
 ```
 
-Three.js loads `three@0.170` from unpkg (needs network once). A local HTTP server serves the model file.
+Three.js loads `three@0.170` from unpkg (needs network once). A local HTTP server serves the model file. Viewer is Z-up (print/CAD), overridable with `MODELVIEW_UP`.
 
 ## Install
 
-See bindings example. Needs `wl-paste`, `jq`, `hyprctl`, and `chromium` (or `f3d` if you switch backends).
+See bindings example. Needs `wl-paste`, `jq`, `hyprctl`, plus `f3d` and/or `chromium`.
 
 MIT

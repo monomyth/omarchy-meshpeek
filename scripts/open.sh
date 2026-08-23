@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# omarchy:summary=Open STL/3MF (f3d or Chromium+Three.js) — Files selection, else picker
+# omarchy:summary=Open STL/3MF — f3d if installed, else Chromium+Three.js
 set -euo pipefail
 
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/modelview"
@@ -73,7 +73,16 @@ need_f3d() {
 }
 
 backend() {
-  printf '%s' "${MODELVIEW_BACKEND:-threejs}"
+  # Explicit override wins; else prefer f3d when installed, otherwise Three.js.
+  if [[ -n "${MODELVIEW_BACKEND:-}" ]]; then
+    printf '%s' "$MODELVIEW_BACKEND"
+    return
+  fi
+  if command -v f3d >/dev/null 2>&1; then
+    printf 'f3d'
+  else
+    printf 'threejs'
+  fi
 }
 
 need_viewer() {
@@ -272,7 +281,7 @@ case "$MODE" in
     ;;
   *)
     echo "usage: open.sh [clay|studio] view|open <path>|inspect [path]|web [path]" >&2
-    echo "  MODELVIEW_BACKEND=threejs|f3d  (default threejs)" >&2
+    echo "  MODELVIEW_BACKEND=f3d|threejs  (default: f3d if installed, else threejs)" >&2
     exit 2
     ;;
 esac
