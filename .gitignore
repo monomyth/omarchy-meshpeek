@@ -1,3 +1,7 @@
+# Python cache
+__pycache__/
+*.pyc
+
 # Vendored Three.js must not live in the repo; fetched to XDG cache.
 viewer/vendor/
 # Local preview assets (optional)
