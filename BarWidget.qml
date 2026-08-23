@@ -6,7 +6,7 @@ import qs.Ui
 
 BarWidget {
   id: root
-  moduleName: "local.meshpeek"
+  moduleName: "io.github.monomyth.meshpeek"
 
   readonly property bool showIcon: setting("showIcon", false) === true
   readonly property string upAxis: String(setting("upAxis", "+Z"))

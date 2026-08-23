@@ -29,7 +29,7 @@ Item {
   }
 
   IpcHandler {
-    target: "local.meshpeek"
+    target: "io.github.monomyth.meshpeek"
 
     function view(): string {
       root.run("view", "", "clay")

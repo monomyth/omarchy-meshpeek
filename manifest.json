@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "id": "local.meshpeek",
+  "id": "io.github.monomyth.meshpeek",
   "name": "Mesh Peek",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": "Eugene Ray / Senior Engineer",
   "license": "MIT",
-  "description": "One shortcut: Files selection opens Chromium+Three.js (f3d if installed); else confirm picker.",
+  "description": "Keyboard-first STL/3MF glance: Chromium+Three.js (cached under ~/.cache); optional f3d.",
   "kinds": [
     "service",
     "bar-widget"

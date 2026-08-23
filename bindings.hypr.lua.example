@@ -41,7 +41,7 @@ local function meshpeek_open()
     local win = hl.get_active_window()
     local class = win and (win.class or win.initialClass or "") or ""
     local in_files = type(class) == "string" and class:find("Nautilus") ~= nil
-    local script = "/home/monomyth/.config/omarchy/plugins/local.meshpeek/scripts/open.sh"
+    local script = "/home/monomyth/.config/omarchy/plugins/io.github.monomyth.meshpeek/scripts/open.sh"
 
     if in_files then
       hl.dispatch(hl.dsp.exec_cmd("wl-copy --clear"))
