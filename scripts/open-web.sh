@@ -95,8 +95,14 @@ class TokenAuthHandler(http.server.SimpleHTTPRequestHandler):
             return True
         return False
 
+    def requires_auth(self):
+        """Only model paths require authentication; viewer assets are public."""
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        return path.startswith("/model.")
+
     def do_GET(self):
-        if not self.check_token():
+        if self.requires_auth() and not self.check_token():
             self.send_error(403, "Forbidden: invalid or missing token")
             return
 
@@ -107,7 +113,7 @@ class TokenAuthHandler(http.server.SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_HEAD(self):
-        if not self.check_token():
+        if self.requires_auth() and not self.check_token():
             self.send_error(403, "Forbidden: invalid or missing token")
             return
         return super().do_HEAD()
