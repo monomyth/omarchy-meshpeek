@@ -12,15 +12,15 @@ One shortcut opens a clay-shaded Three.js viewer in Chromium. Not a slicer, not 
 omarchy plugin add https://github.com/monomyth/omarchy-meshpeek.git --enable
 ```
 
-Then add the Super+Shift+Ctrl+V keybind — either:
+Then add **Super+Shift+Ctrl+V** either way:
 
 ```sh
 bash ~/.config/omarchy/plugins/io.github.monomyth.meshpeek/scripts/install-bind.sh
 ```
 
-…or paste `bindings.hypr.lua.example` into `~/.config/hypr/bindings.lua` yourself.
+Or paste `bindings.hypr.lua.example` into `~/.config/hypr/bindings.lua` yourself.
 
-The install script only adds the bind if that chord is free; if something else owns it, it prints the conflict and exits.
+The install script checks whether that chord is free (Omarchy keybindings print plus your `bindings.lua`). If Mesh Peek already owns it, it does nothing. If something else owns it, it prints the conflict and exits 2. Otherwise it appends the portable `meshpeek_open()` helper (`os.getenv("HOME")`, no hardcoded path).
 
 Needs Chromium (or Chrome), plus `wl-paste`, `jq`, and `hyprctl`. First open caches Three.js under `~/.cache/omarchy/meshpeek/` (once; refreshes about weekly).
 
