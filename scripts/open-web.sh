@@ -38,12 +38,17 @@ TOKEN=$(openssl rand -hex 16 2>/dev/null || python3 -c "import secrets; print(se
 STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/omarchy-meshpeek-web"
 # Ensure STATE_DIR has restricted permissions (user-only)
 rm -rf "$STATE_DIR"
-mkdir -p "$STATE_DIR"
-chmod 0700 "$STATE_DIR"
+(umask 077 && mkdir -p "$STATE_DIR")
+
+# Write token to file (mode 0600) - avoids exposing secret in process argv
+TOKEN_FILE="$STATE_DIR/token"
+(umask 077 && printf '%s' "$TOKEN" > "$TOKEN_FILE")
 
 ext="${MODEL##*.}"
-MODEL_LINK="$STATE_DIR/model.$ext"
-ln -sfn "$MODEL" "$MODEL_LINK"
+MODEL_COPY="$STATE_DIR/model.$ext"
+# Copy model file with restricted permissions instead of world-followable symlink
+cp -- "$MODEL" "$MODEL_COPY"
+chmod 0600 "$MODEL_COPY"
 
 # Runtime layout:
 #   STATE/viewer/index.html
@@ -57,7 +62,8 @@ ln -sfn "$CACHE_DIR" "$STATE_DIR/viewer/vendor/three"
 INDEX_REL="viewer/index.html"
 
 # Token-authenticated HTTP server with lifecycle tracking
-python3 - "$PORT" "$STATE_DIR" "$MODEL_LINK" "$TOKEN" <<'PY' &
+# Note: token is read from STATE_DIR/token file, NOT passed via argv (security: avoids /proc cmdline exposure)
+python3 - "$PORT" "$STATE_DIR" "$MODEL_COPY" <<'PY' &
 import http.server
 import os
 import socketserver
@@ -67,7 +73,10 @@ import urllib.parse
 port = int(sys.argv[1])
 root = sys.argv[2]
 model = sys.argv[3]
-expected_token = sys.argv[4]
+# Read token from file to avoid exposing it in /proc/PID/cmdline
+token_path = os.path.join(root, "token")
+with open(token_path, "r") as f:
+    expected_token = f.read()
 os.chdir(root)
 
 
@@ -111,7 +120,23 @@ PY
 SERVER_PID=$!
 
 UP_AXIS="${MODELVIEW_UP:-+Z}"
-URL="http://127.0.0.1:${PORT}/viewer/index.html?token=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$TOKEN")&file=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "/model.$ext")&up=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$UP_AXIS")"
+# Build the real URL with token for the viewer
+REAL_URL="http://127.0.0.1:${PORT}/viewer/index.html?token=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$TOKEN")&file=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "/model.$ext")&up=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$UP_AXIS")"
+
+# Create bootstrap HTML that redirects to the real URL (security: keeps token out of Chromium cmdline)
+LAUNCH_HTML="$STATE_DIR/launch.html"
+(umask 077 && cat > "$LAUNCH_HTML" <<LAUNCH_EOF
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0;url=$REAL_URL">
+<script>window.location.replace("$REAL_URL");</script>
+</head>
+<body>Redirecting...</body>
+</html>
+LAUNCH_EOF
+)
 
 CHROME=""
 for c in chromium chromium-browser google-chrome-stable google-chrome brave; do
@@ -123,8 +148,8 @@ if [[ -z "$CHROME" ]]; then
   exit 127
 fi
 
-# Launch Chromium and track its lifecycle
-"$CHROME" --new-window --app="$URL" >/dev/null 2>&1 &
+# Launch Chromium with file:// URL to bootstrap HTML (token not in cmdline)
+"$CHROME" --new-window --app="file://$LAUNCH_HTML" >/dev/null 2>&1 &
 CHROME_PID=$!
 
 # Maximum lifetime safety net (5 minutes)

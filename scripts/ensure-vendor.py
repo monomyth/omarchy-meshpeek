@@ -141,7 +141,9 @@ def fetch_one(rel_src: str, dest: Path, expected_hash: str, expected_size: int) 
 def main() -> int:
     CACHE.mkdir(parents=True, exist_ok=True)
 
-    if needs_fetch():
+    # Always verify cache integrity before trusting it (security: detect tampering)
+    # Refetch if stale OR if verification fails on existing cache
+    if needs_fetch() or not verify_cache():
         try:
             for rel_src, dest_rel, expected_hash, expected_size in FILES:
                 fetch_one(rel_src, CACHE / dest_rel, expected_hash, expected_size)
@@ -149,6 +151,7 @@ def main() -> int:
             STAMP.write_text(str(int(time.time())) + "\n", encoding="utf-8")
         except Exception as e:
             print(f"Fetch failed: {e}", file=sys.stderr)
+            # Fail-safe: only use existing cache if it still verifies
             if verify_cache():
                 print(
                     "Using existing verified cache (offline/fail-safe mode)",

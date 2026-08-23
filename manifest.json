@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.monomyth.meshpeek",
   "name": "Mesh Peek",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "author": "Eugene Ray / Senior Engineer",
   "license": "MIT",
   "description": "Keyboard-first STL/3MF glance: Chromium+Three.js (cached under ~/.cache); optional f3d.",
