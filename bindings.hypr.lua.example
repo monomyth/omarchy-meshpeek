@@ -33,15 +33,15 @@
 
 -- Files selection → view; else newest folder + confirm picker
 
--- Model View: one shortcut
+-- Mesh Peek: one shortcut
 -- Files focused → copy selection (Hypr send_key_state) then open that file
 -- Otherwise → newest-folder confirm picker
-local function modelview_open()
+local function meshpeek_open()
   return function()
     local win = hl.get_active_window()
     local class = win and (win.class or win.initialClass or "") or ""
     local in_files = type(class) == "string" and class:find("Nautilus") ~= nil
-    local script = "/home/monomyth/.config/omarchy/plugins/local.modelview/scripts/open.sh"
+    local script = "/home/monomyth/.config/omarchy/plugins/local.meshpeek/scripts/open.sh"
 
     if in_files then
       hl.dispatch(hl.dsp.exec_cmd("wl-copy --clear"))
@@ -60,4 +60,4 @@ local function modelview_open()
   end
 end
 
-o.bind("SUPER + SHIFT + CTRL + V", "Model View", modelview_open(), { release = true })
+o.bind("SUPER + SHIFT + CTRL + V", "Mesh Peek", meshpeek_open(), { release = true })

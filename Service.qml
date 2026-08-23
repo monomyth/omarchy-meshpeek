@@ -29,7 +29,7 @@ Item {
   }
 
   IpcHandler {
-    target: "local.modelview"
+    target: "local.meshpeek"
 
     function view(): string {
       root.run("view", "", "clay")

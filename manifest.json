@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "id": "local.modelview",
-  "name": "Model View",
-  "version": "0.1.9",
+  "id": "local.meshpeek",
+  "name": "Mesh Peek",
+  "version": "0.2.1",
   "author": "Eugene Ray / Senior Engineer",
   "license": "MIT",
-  "description": "One shortcut: Files selection opens f3d if installed, else Chromium+Three.js; otherwise confirm picker.",
+  "description": "One shortcut: Files selection opens Chromium+Three.js (f3d if installed); else confirm picker.",
   "kinds": [
     "service",
     "bar-widget"
@@ -16,7 +16,7 @@
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Model View",
+    "displayName": "Mesh Peek",
     "description": "Optional bar icon; prefer Super+Shift+Ctrl+V.",
     "category": "Hardware",
     "aliases": [
@@ -25,7 +25,10 @@
       "f3d",
       "model-view",
       "threejs",
-      "web"
+      "web",
+      "meshpeek",
+      "mesh-peek",
+      "peek"
     ],
     "allowMultiple": false,
     "defaultSection": "right",

@@ -1,4 +1,4 @@
-# Model View (`local.modelview`)
+# Mesh Peek (`local.meshpeek`)
 
 Keyboard-first STL/3MF glance for Omarchy Quattro.
 
@@ -23,7 +23,7 @@ export MODELVIEW_BACKEND=f3d
 export MODELVIEW_BACKEND=threejs
 ```
 
-Three.js loads `three@0.170` from unpkg (needs network once). A local HTTP server serves the model file. Viewer is Z-up (print/CAD), overridable with `MODELVIEW_UP`.
+Three.js `0.170` is vendored under `viewer/vendor/` (no CDN at runtime). A local HTTP server on 127.0.0.1 serves the model. Viewer is Z-up (print/CAD), overridable with `MODELVIEW_UP`.
 
 ## Install
 

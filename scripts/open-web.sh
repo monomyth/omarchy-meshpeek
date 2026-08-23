@@ -6,12 +6,12 @@ PLUGIN_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 VIEWER="$PLUGIN_DIR/viewer/index.html"
 MODEL="${1:-}"
 if [[ -z "$MODEL" || ! -f "$MODEL" ]]; then
-  notify-send -u low "Model View" "No model file for web viewer"
+  notify-send -u low "Mesh Peek" "No model file for web viewer"
   echo "no file: $MODEL" >&2
   exit 1
 fi
 if [[ ! -f "$VIEWER" ]]; then
-  notify-send -u critical "Model View" "viewer/index.html missing"
+  notify-send -u critical "Mesh Peek" "viewer/index.html missing"
   exit 1
 fi
 
@@ -24,7 +24,7 @@ s.close()
 PY
 )
 
-STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/omarchy-modelview-web"
+STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/omarchy-meshpeek-web"
 mkdir -p "$STATE_DIR"
 ext="${MODEL##*.}"
 MODEL_LINK="$STATE_DIR/model.$ext"
@@ -60,7 +60,7 @@ for c in chromium chromium-browser google-chrome-stable google-chrome brave; do
 done
 if [[ -z "$CHROME" ]]; then
   kill "$SERVER_PID" 2>/dev/null || true
-  notify-send -u critical "Model View" "No Chromium/Chrome found for Three.js viewer"
+  notify-send -u critical "Mesh Peek" "No Chromium/Chrome found for Three.js viewer"
   exit 127
 fi
 

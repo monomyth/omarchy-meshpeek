@@ -2,7 +2,7 @@
 # omarchy:summary=Open STL/3MF — f3d if installed, else Chromium+Three.js
 set -euo pipefail
 
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/modelview"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/meshpeek"
 LAST_FILE="$STATE_DIR/last"
 mkdir -p "$STATE_DIR"
 
@@ -66,7 +66,7 @@ studio_flags() {
 
 need_f3d() {
   if ! command -v f3d >/dev/null 2>&1; then
-    notify-send -u critical "Model View" "f3d is not installed. Try: yay -S f3d (or leave MODELVIEW_BACKEND=threejs)"
+    notify-send -u critical "Mesh Peek" "f3d is not installed. Try: yay -S f3d (or leave MODELVIEW_BACKEND=threejs)"
     echo "f3d missing" >&2
     exit 127
   fi
@@ -89,11 +89,11 @@ need_viewer() {
   case "$(backend)" in
     threejs|web|chromium)
       if [[ ! -x "$SCRIPT_DIR/open-web.sh" ]]; then
-        notify-send -u critical "Model View" "open-web.sh missing"
+        notify-send -u critical "Mesh Peek" "open-web.sh missing"
         exit 127
       fi
       if ! command -v chromium >/dev/null 2>&1 && ! command -v chromium-browser >/dev/null 2>&1; then
-        notify-send -u critical "Model View" "Chromium required for Three.js viewer"
+        notify-send -u critical "Mesh Peek" "Chromium required for Three.js viewer"
         exit 127
       fi
       ;;
@@ -194,7 +194,7 @@ open_path() {
   local path="$1"
   local inspect="${2:-0}"
   if [[ -z "$path" || ! -f "$path" ]]; then
-    notify-send -u low "Model View" "No model file to open"
+    notify-send -u low "Mesh Peek" "No model file to open"
     echo "no file: $path" >&2
     exit 1
   fi
@@ -205,7 +205,7 @@ open_path() {
         select_flags
         exec f3d "${F3D_FLAGS[@]}" --edges --line-width=1 "$path"
       fi
-      notify-send -u low -t 1200 "Model View" "Web: $(basename "$path")"
+      notify-send -u low -t 1200 "Mesh Peek" "Web: $(basename "$path")"
       exec "$SCRIPT_DIR/open-web.sh" "$path"
       ;;
   esac
@@ -226,12 +226,12 @@ view_flow() {
     folder=$(dirname "$newest")
     hint=$(basename "$newest")
     path=$("$SCRIPT_DIR/select_confirm.py" \
-      --title "Model View — confirm $hint (or pick another)" \
+      --title "Mesh Peek — confirm $hint (or pick another)" \
       --folder "$folder" \
       --extensions "stl 3mf obj gltf glb" || true)
   else
     path=$("$SCRIPT_DIR/select_confirm.py" \
-      --title "Model View — pick a model" \
+      --title "Mesh Peek — pick a model" \
       --folder "${HOME}/Downloads" \
       --extensions "stl 3mf obj gltf glb" || true)
   fi

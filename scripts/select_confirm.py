@@ -15,7 +15,7 @@ EXIT_CHOOSER_FAILED = 2
 
 def main():
     p = argparse.ArgumentParser(add_help=False)
-    p.add_argument("--title", default="Model View")
+    p.add_argument("--title", default="Mesh Peek")
     p.add_argument("--folder", default="")
     p.add_argument("--extensions", default="stl 3mf obj gltf glb")
     args, unknown = p.parse_known_args()
@@ -44,7 +44,7 @@ def main():
             on_response,
         )
 
-    token = "modelview%d" % os.getpid()
+    token = "meshpeek%d" % os.getpid()
     sender = bus.get_unique_name()[1:].replace(".", "_")
     predicted = "/org/freedesktop/portal/desktop/request/%s/%s" % (sender, token)
     subscribe(predicted)

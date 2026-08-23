@@ -6,7 +6,7 @@ import qs.Ui
 
 BarWidget {
   id: root
-  moduleName: "local.modelview"
+  moduleName: "local.meshpeek"
 
   readonly property bool showIcon: setting("showIcon", false) === true
   readonly property string upAxis: String(setting("upAxis", "+Z"))
@@ -44,7 +44,7 @@ BarWidget {
     visible: root.showIcon
     text: "󰆧"
     slotSize: Style.bar.statusSlot
-    tooltipText: "Model View — Files selection, or newest + confirm"
+    tooltipText: "Mesh Peek — Files selection, or newest + confirm"
     onPressed: function(mouseButton) {
       root.launch()
     }
